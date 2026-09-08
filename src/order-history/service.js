@@ -1,20 +1,32 @@
 import { getAuthenticatedHttpClient, getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import { getConfig } from '@edx/frontend-platform';
 
-const { ORDER_HISTORY_URL, RECEIPT_URL, ECOMMERCE_BASE_URL } = getConfig();
+/**
+ * Resolve the ecommerce URLs at call time, not at module load.
+ *
+ * Under Tutor the MFE is built with an empty ECOMMERCE_BASE_URL and receives
+ * the real value from the LMS runtime config (/api/mfe_config/v1) during
+ * initialisation. Reading getConfig() at module scope ran before that fetch,
+ * so the orders request went to `/api/v2/orders/` relative to the MFE host.
+ *
+ * ORDER_HISTORY_URL is deliberately not used as the API endpoint: the LMS
+ * publishes that key as the URL of this page (for the account MFE's link),
+ * not as an orders API override.
+ */
+export function getEcommerceUrls() {
+  const { RECEIPT_URL, ECOMMERCE_BASE_URL } = getConfig();
+  return {
+    ordersUrl: `${ECOMMERCE_BASE_URL}/api/v2/orders/`,
+    receiptBaseUrl: RECEIPT_URL || `${ECOMMERCE_BASE_URL}/checkout/receipt/`,
+  };
+}
 
-const ECOMMERCE_API_BASE_URL = `${ECOMMERCE_BASE_URL}/api/v2`;
-const ECOMMERCE_RECEIPT_BASE_URL = RECEIPT_URL
-  ? `${RECEIPT_URL}` : `${ECOMMERCE_BASE_URL}/checkout/receipt/`;
-const ECOMMERCE_ORDERS_URL = ORDER_HISTORY_URL
-  ? `${ORDER_HISTORY_URL}` : `${ECOMMERCE_API_BASE_URL}/orders/`;
-
-// eslint-disable-next-line import/prefer-default-export
 export async function getOrders(page = 1, pageSize = 20) {
   const httpClient = getAuthenticatedHttpClient();
   const { username } = getAuthenticatedUser();
+  const { ordersUrl, receiptBaseUrl } = getEcommerceUrls();
 
-  const { data } = await httpClient.get(`${ECOMMERCE_ORDERS_URL}`, {
+  const { data } = await httpClient.get(ordersUrl, {
     params: {
       username,
       page,
@@ -45,7 +57,7 @@ export async function getOrders(page = 1, pageSize = 20) {
       orderId: number,
       currency,
       lineItems,
-      receiptUrl: `${ECOMMERCE_RECEIPT_BASE_URL}?order_number=${number}`,
+      receiptUrl: `${receiptBaseUrl}?order_number=${number}`,
     };
   });
 
