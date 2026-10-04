@@ -3,4 +3,4 @@
 // app has one and otherwise requires @openedx/frontend-build. This fork is
 // frozen on the Sumac line with the pre-rename @edx/frontend-build 13, so
 // point the wrapper at that package instead.
-module.exports = require('@edx/frontend-build/config/webpack.prod.config.js');
+module.exports = require('@edx/frontend-build/config/webpack.prod.config');
